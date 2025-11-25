@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>化学概念动态示意图生成器</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ecf0f1; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
+        
+        #search-area { display: flex; margin-bottom: 30px; }
+        #conceptInput { flex-grow: 1; padding: 12px; border: 2px solid #bdc3c7; border-radius: 6px 0 0 6px; font-size: 16px; }
+        #searchButton { padding: 12px 25px; background-color: #3498db; color: white; border: none; border-radius: 0 6px 6px 0; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        #searchButton:hover { background-color: #2980b9; }
+
+        .case-studies { margin-bottom: 40px; }
+        .case-studies h3 { color: #34495e; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .case-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+        .case-card { background-color: #f7f9fb; padding: 15px; border-radius: 8px; border: 1px solid #dfe6e9; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .case-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .case-card p { margin: 0; font-size: 14px; color: #7f8c8d; }
+        .case-card strong { color: #2c3e50; display: block; margin-bottom: 5px; }
+
+        #visualization-title { color: #2c3e50; margin-top: 20px; border-bottom: 2px solid #3498db; padding-bottom: 10px; display: none; }
+        #visualizationResult { 
+            min-height: 400px; 
+            border: 1px dashed #bdc3c7; 
+            border-radius: 8px; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            text-align: center;
+            font-size: 18px;
+            color: #7f8c8d;
+            background-color: #ecf0f1;
+        }
+
+        /* 加载动画 CSS */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚗️ 化学概念动态示意图生成器</h1>
+
+        <div id="search-area">
+            <input type="text" id="conceptInput" placeholder="请输入您想生成的化学示意图概念，如：物质三态变化下微粒的变化示意图">
+            <button id="searchButton" onclick="triggerGeminiSearch()">生成示意图</button>
+        </div>
+
+        <div class="case-studies">
+            <h3>✨ 常见搜索案例 (点击即可填充)</h3>
+            <div class="case-grid">
+                <div class="case-card" onclick="fillInput('水的电离过程（动态）')">
+                    <strong>水的电离过程</strong>
+                    <p>展示 H2O ⇄ H+ + OH- 的微观动态平衡。</p>
+                </div>
+                <div class="case-card" onclick="fillInput('HCl分子与H2O分子的作用')">
+                    <strong>HCl 与水分子作用</strong>
+                    <p>质子转移形成 H3O+ 和 Cl- 的动画。</p>
+                </div>
+                <div class="case-card" onclick="fillInput('铜锌原电池工作原理')">
+                    <strong>铜锌原电池原理</strong>
+                    <p>电子流动、离子迁移和电极反应的示意图。</p>
+                </div>
+                <div class="case-card" onclick="fillInput('物质三态变化微粒示意图')">
+                    <strong>物质三态变化</strong>
+                    <p>固、液、气状态下微粒排列和运动的对比。</p>
+                </div>
+            </div>
+        </div>
+        
+        <h3 id="visualization-title">生成结果：动态示意图</h3>
+
+        <div id="visualizationResult">
+            在此处将展示由 Gemini 生成的动态或交互式化学示意图。
+        </div>
+    </div>
+
+    <script>
+        const visualizationResult = document.getElementById('visualizationResult');
+        const visualizationTitle = document.getElementById('visualization-title');
+        const searchButton = document.getElementById('searchButton');
+        const conceptInput = document.getElementById('conceptInput');
+
+        function fillInput(concept) {
+            conceptInput.value = concept;
+        }
+
+        function triggerGeminiSearch() {
+            const concept = conceptInput.value;
+            if (!concept) {
+                alert("请输入一个化学概念！");
+                return;
+            }
+            
+            // 禁用按钮，显示加载状态
+            searchButton.disabled = true;
+            searchButton.textContent = "生成中...";
+            visualizationTitle.style.display = 'block';
+
+            // 1. 更新 UI 为加载状态
+            visualizationResult.innerHTML = `
+                <div style="padding: 50px;">
+                    <div class="spinner"></div> 
+                    <p>正在调用智能模型生成 **${concept}** 的动态示意图...</p>
+                </div>`;
+            
+
+            // 2. 发起 Fetch 请求到后端代理 
+            // 🌟 关键：使用相对路径，确保本地和部署环境都能工作
+            fetch('/generate_diagram', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ concept: concept })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // 如果后端返回 4xx/5xx 错误，尝试解析 JSON 错误消息
+                    return response.json().then(err => {
+                        throw new Error(err.error || '网络请求失败或后端服务错误。');
+                    }).catch(() => {
+                        // 如果无法解析 JSON，可能是后端崩溃或返回了非 JSON 错误页面
+                        throw new Error(response.statusText || '后端服务连接中断。');
+                    });
+                }
+                // Gemini 返回的是纯文本 (HTML代码)
+                return response.text(); 
+            })
+            .then(htmlContent => {
+                // 3. 成功：将 Gemini 返回的 HTML 代码注入到 DOM 中
+                if (htmlContent && htmlContent.trim().length > 10) {
+                    visualizationResult.innerHTML = htmlContent;
+                    console.log("代码注入成功！");
+                } else {
+                    // 处理返回空内容的情况
+                    visualizationResult.innerHTML = `
+                        <p style="color: orange; font-weight: bold;">生成结果为空或不完整。</p>
+                        <p>请尝试其他概念或检查后端日志。</p>`;
+                }
+            })
+            .catch(error => {
+                // 4. 失败：显示错误信息
+                console.error('API调用错误:', error);
+                visualizationResult.innerHTML = `
+                    <p style="color: red; font-weight: bold;">错误：无法完成示意图生成。</p>
+                    <p>请确保 Flask 后端已启动且端口正确，或检查API Key是否有效。</p>
+                    <p style="font-size: 14px;">详情：${error.message}</p>`;
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                searchButton.disabled = false;
+                searchButton.textContent = "生成示意图";
+            });
+        }
+    </script>
+</body>
+</html>

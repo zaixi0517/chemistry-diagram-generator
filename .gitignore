@@ -1,0 +1,10 @@
+# .gitignore 文件的内容
+# 忽略API密钥文件
+.env
+
+# 忽略Python虚拟环境
+venv/
+
+# 忽略Python编译文件
+__pycache__/
+*.pyc
